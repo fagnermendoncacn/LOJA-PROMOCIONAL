@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Estoque - Versão Código de Barras</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: #1e40af;
+            --medium-blue: #3b82f6;
+            --light-blue: #60a5fa;
+            --gold: #fbbf24;
+            --dark-gold: #f59e0b;
+            --white: #ffffff;
+            --light-gray: #f3f4f6;
+            --gray: #6b7280;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            min-height: 100vh;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .login-container h1 {
+            color: var(--primary-blue);
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .login-subtitle {
+            color: var(--gray);
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+
+        .quick-login-btn {
+            width: 100%;
+            padding: 20px;
+            margin: 15px 0;
+            font-size: 1.3em;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .admin-btn {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            color: white;
+        }
+
+        .manager-btn {
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+            color: white;
+        }
+
+        .seller-btn {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+        }
+
+        .quick-login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        /* Main App Container */
+        .app-container {
+            display: none;
+        }
+
+        .app-header {
+            background: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-header h1 {
+            color: var(--primary-blue);
+            font-size: 1.8em;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-badge {
+            background: linear-gradient(135deg, var(--gold), var(--dark-gold));
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+        }
+
+        .logout-btn {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .logout-btn:hover {
+            background: var(--medium-blue);
+        }
+
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: white;
+            padding: 30px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .menu-item {
+            padding: 18px 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--gray);
+        }
+
+        .menu-item:hover {
+            background: var(--light-gray);
+            color: var(--primary-blue);
+            border-left: 5px solid var(--gold);
+        }
+
+        .menu-item.active {
+            background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
+            color: var(--primary-blue);
+            border-left: 5px solid var(--primary-blue);
+            font-weight: bold;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 40px;
+            background: var(--light-gray);
+        }
+
+        .section {
+            display: none;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-title {
+            color: var(--primary-blue);
+            font-size: 2em;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--gold);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--primary-blue);
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--medium-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .barcode-input {
+            background: #fef3c7 !important;
+            border-color: var(--gold) !important;
+            font-weight: bold;
+            font-size: 1.2em !important;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--medium-blue));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 64, 175, 0.4);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold), var(--dark-gold));
+            color: white;
+        }
+
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, var(--primary-blue), var(--medium-blue));
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        tbody tr:nth-child(even) {
+            background: var(--light-gray);
+        }
+
+        tbody tr:hover {
+            background: #dbeafe;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: linear-gradient(135deg, var(--primary-blue), var(--medium-blue));
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .dashboard-card h3 {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .dashboard-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .gold-card {
+            background: linear-gradient(135deg, var(--gold), var(--dark-gold)) !important;
+        }
+
+        /* Barcode Scanner Alert */
+        .barcode-alert {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left: 5px solid var(--gold);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #92400e;
+        }
+
+        .report-filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .report-filters input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 5px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 5px solid #ef4444;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+            .content-area {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-container">
+        <h1>🏪 Sistema de Estoque</h1>
+        <p class="login-subtitle">Versão Código de Barras Pro</p>
+        
+        <div class="barcode-alert">
+            ⚠️ Sistema otimizado para uso com leitor de código de barras
+        </div>
+
+        <button class="quick-login-btn admin-btn" onclick="quickLogin('admin')">
+            🔴 ADMINISTRADOR
+        </button>
+        <button class="quick-login-btn manager-btn" onclick="quickLogin('gerente')">
+            🟡 GERENTE
+        </button>
+        <button class="quick-login-btn seller-btn" onclick="quickLogin('vendedor')">
+            🟢 VENDEDOR
+        </button>
+    </div>
+</div>
+
+<!-- Main Application -->
+<div class="app-container" id="appContainer">
+    <div class="app-header">
+        <h1>🏪 Sistema de Estoque Pro</h1>
+        <div class="user-info">
+            <span class="user-badge" id="userBadge">Usuário</span>
+            <button class="logout-btn" onclick="logout()">Sair</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <div class="menu-item active" onclick="showSection('dashboard')">
+                📊 Dashboard
+            </div>
+            <div class="menu-item" onclick="showSection('produtos')">
+                📦 Produtos
+            </div>
+            <div class="menu-item" onclick="showSection('venda-rapida')">
+                🛒 Venda Rápida
+            </div>
+            <div class="menu-item" onclick="showSection('relatorio-diario')">
+                📅 Relatório Diário
+            </div>
+            <div class="menu-item" onclick="showSection('relatorio-geral')">
+                📈 Relatórios Gerais
+            </div>
+            <div class="menu-item" onclick="showSection('fornecedores')">
+                🏢 Fornecedores
+            </div>
+        </div>
+
+        <div class="content-area">
+            <!-- Dashboard -->
+            <div class="section active" id="dashboard">
+                <h2 class="section-title">Dashboard</h2>
+                <div class="dashboard-cards">
+                    <div class="dashboard-card">
+                        <h3>Total de Produtos</h3>
+                        <div class="value" id="totalProdutos">0</div>
+                    </div>
+                    <div class="dashboard-card gold-card">
+                        <h3>Vendas Hoje</h3>
+                        <div class="value" id="vendasHoje">R$ 0,00</div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Vendas no Mês</h3>
+                        <div class="value" id="vendasMes">R$ 0,00</div>
+                    </div>
+                    <div class="dashboard-card gold-card">
+                        <h3>Lucro Hoje</h3>
+                        <div class="value" id="lucroHoje">R$ 0,00</div>
+                    </div>
+                </div>
+                <canvas id="chartVendas" style="max-height: 400px;"></canvas>
+            </div>
+
+            <!-- Produtos -->
+            <div class="section" id="produtos">
+                <h2 class="section-title">Gerenciar Produtos</h2>
+                
+                <div class="barcode-alert">
+                    🔍 Use o leitor de código de barras para preencher automaticamente
+                </div>
+
+                <form id="formProduto" onsubmit="salvarProduto(event)">
+                    <div class="form-group">
+                        <label>🔢 Código de Barras *</label>
+                        <input type="text" id="codigoBarras" class="barcode-input" required 
+                               placeholder="Escaneie ou digite o código de barras" autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label>Nome do Produto *</label>
+                        <input type="text" id="nomeProduto" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Preço de Custo (R$) *</label>
+                        <input type="number" id="precoCusto" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Preço de Venda (R$) *</label>
+                        <input type="number" id="precoVenda" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantidade em Estoque *</label>
+                        <input type="number" id="quantidadeProduto" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Estoque Mínimo</label>
+                        <input type="number" id="estoqueMinimo" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label>Fornecedor</label>
+                        <select id="fornecedorProduto">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar Produto</button>
+                    <button type="button" class="btn btn-gold" onclick="limparFormProduto()">Limpar</button>
+                </form>
+
+                <h3 style="margin-top: 40px; color: var(--primary-blue);">Lista de Produtos</h3>
+                <input type="text" id="buscaProduto" placeholder="🔍 Buscar produto..." 
+                       style="width: 100%; padding: 15px; margin: 20px 0; border: 2px solid #e5e7eb; border-radius: 10px;"
+                       onkeyup="filtrarProdutos()">
+                
+                <table id="tabelaProdutos">
+                    <thead>
+                        <tr>
+                            <th>Código Barras</th>
+                            <th>Nome</th>
+                            <th>Preço Venda</th>
+                            <th>Estoque</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaProdutos"></tbody>
+                </table>
+            </div>
+
+            <!-- Venda Rápida -->
+            <div class="section" id="venda-rapida">
+                <h2 class="section-title">🛒 Venda Rápida com Código de Barras</h2>
+                
+                <div class="barcode-alert">
+                    ⚡ Escaneie o código de barras para adicionar produtos à venda
+                </div>
+
+                <div class="form-group">
+                    <label>🔢 Código de Barras</label>
+                    <input type="text" id="codigoVenda" class="barcode-input" 
+                           placeholder="Escaneie o código de barras" 
+                           onkeypress="adicionarProdutoVenda(event)" autofocus>
+                </div>
+
+                <div id="itensVenda" style="margin: 30px 0;"></div>
+
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h3 style="color: var(--primary-blue);">Total da Venda: <span id="totalVenda">R$ 0,00</span></h3>
+                    <h3 style="color: var(--gold);">Lucro Estimado: <span id="lucroVenda">R$ 0,00</span></h3>
+                </div>
+
+                <div class="form-group">
+                    <label>Cliente (opcional)</label>
+                    <input type="text" id="clienteVenda" placeholder="Nome do cliente">
+                </div>
+
+                <button class="btn btn-primary" onclick="finalizarVenda()" style="font-size: 1.3em; padding: 20px 40px;">
+                    ✅ FINALIZAR VENDA
+                </button>
+                <button class="btn btn-gold" onclick="cancelarVenda()">❌ Cancelar</button>
+            </div>
+
+            <!-- Relatório Diário -->
+            <div class="section" id="relatorio-diario">
+                <h2 class="section-title">📅 Relatório de Vendas Diário</h2>
+                
+                <div class="report-filters">
+                    <input type="date" id="dataRelatorio" class="form-control">
+                    <button class="btn btn-primary" onclick="gerarRelatorioDiario()">📊 Gerar Relatório</button>
+                    <button class="btn btn-gold" onclick="exportarRelatorioDiarioExcel()">📥 Exportar Excel</button>
+                    <button class="btn btn-gold" onclick="exportarRelatorioDiarioPDF()">📄 Exportar PDF</button>
+                </div>
+
+                <div id="resumoDiario" style="margin: 30px 0;"></div>
+
+                <table id="tabelaVendasDiario">
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Produtos</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Lucro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaVendasDiario"></tbody>
+                </table>
+            </div>
+
+            <!-- Relatório Geral -->
+            <div class="section" id="relatorio-geral">
+                <h2 class="section-title">📈 Relatórios Gerais</h2>
+                
+                <div class="report-filters">
+                    <input type="date" id="dataInicio">
+                    <input type="date" id="dataFim">
+                    <button class="btn btn-primary" onclick="gerarRelatorioGeral()">📊 Gerar</button>
+                    <button class="btn btn-gold" onclick="exportarRelatorioExcel()">📥 Excel</button>
+                    <button class="btn btn-gold" onclick="exportarRelatorioPDF()">📄 PDF</button>
+                </div>
+
+                <div id="resumoGeral" style="margin: 30px 0;"></div>
+                <canvas id="chartRelatorio" style="max-height: 400px; margin: 30px 0;"></canvas>
+
+                <h3 style="color: var(--primary-blue); margin: 30px 0;">Produtos Mais Vendidos</h3>
+                <table id="tabelaMaisVendidos">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Quantidade</th>
+                            <th>Total Vendido</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaMaisVendidos"></tbody>
+                </table>
+            </div>
+
+            <!-- Fornecedores -->
+            <div class="section" id="fornecedores">
+                <h2 class="section-title">Gerenciar Fornecedores</h2>
+                
+                <form id="formFornecedor" onsubmit="salvarFornecedor(event)">
+                    <div class="form-group">
+                        <label>Nome da Empresa *</label>
+                        <input type="text" id="nomeFornecedor" required>
+                    </div>
+                    <div class="form-group">
+                        <label>CNPJ</label>
+                        <input type="text" id="cnpjFornecedor">
+                    </div>
+                    <div class="form-group">
+                        <label>Contato</label>
+                        <input type="text" id="contatoFornecedor">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="tel" id="telefoneFornecedor">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar Fornecedor</button>
+                </form>
+
+                <table style="margin-top: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Empresa</th>
+                            <th>CNPJ</th>
+                            <th>Contato</th>
+                            <th>Telefone</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaFornecedores"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dados globais
+let currentUser = null;
+let produtos = JSON.parse(localStorage.getItem('produtos')) || [];
+let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
+let fornecedores = JSON.parse(localStorage.getItem('fornecedores')) || [];
+let carrinhoVenda = [];
+
+// Login
+function quickLogin(tipo) {
+    currentUser = { nome: tipo.toUpperCase(), tipo: tipo };
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+    document.getElementById('userBadge').textContent = currentUser.nome;
+    atualizarDashboard();
+    carregarProdutos();
+    carregarFornecedores();
+    atualizarSelectFornecedores();
+    
+    // Definir data de hoje no relatório diário
+    document.getElementById('dataRelatorio').valueAsDate = new Date();
+}
+
+function logout() {
+    currentUser = null;
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appContainer').style.display = 'none';
+}
+
+// Navegação
+function showSection(sectionId) {
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.getElementById(sectionId).classList.add('active');
+    event.target.classList.add('active');
+    
+    // Atualizar dados ao abrir seções específicas
+    if (sectionId === 'dashboard') atualizarDashboard();
+    if (sectionId === 'relatorio-diario') gerarRelatorioDiario();
+}
+
+// Produtos
+function salvarProduto(event) {
+    event.preventDefault();
+    
+    const produto = {
+        id: Date.now(),
+        codigoBarras: document.getElementById('codigoBarras').value,
+        nome: document.getElementById('nomeProduto').value,
+        precoCusto: parseFloat(document.getElementById('precoCusto').value),
+        precoVenda: parseFloat(document.getElementById('precoVenda').value),
+        quantidade: parseInt(document.getElementById('quantidadeProduto').value),
+        estoqueMinimo: parseInt(document.getElementById('estoqueMinimo').value),
+        fornecedor: document.getElementById('fornecedorProduto').value
+    };
+    
+    produtos.push(produto);
+    localStorage.setItem('produtos', JSON.stringify(produtos));
+    
+    alert('✅ Produto cadastrado com sucesso!');
+    limparFormProduto();
+    carregarProdutos();
+    atualizarDashboard();
+}
+
+function limparFormProduto() {
+    document.getElementById('formProduto').reset();
+    document.getElementById('codigoBarras').focus();
+}
+
+function carregarProdutos() {
+    const tbody = document.getElementById('listaProdutos');
+    tbody.innerHTML = '';
+    
+    produtos.forEach(produto => {
+        const status = produto.quantidade <= produto.estoqueMinimo ? 
+            '<span style="color: red;">⚠️ Baixo</span>' : 
+            '<span style="color: green;">✅ OK</span>';
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>${produto.codigoBarras}</td>
+                <td>${produto.nome}</td>
+                <td>R$ ${produto.precoVenda.toFixed(2)}</td>
+                <td>${produto.quantidade}</td>
+                <td>${status}</td>
+                <td>
+                    <button class="btn btn-primary" style="padding: 8px 15px; font-size: 0.9em;" 
+                            onclick="editarProduto(${produto.id})">Editar</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function filtrarProdutos() {
+    const busca = document.getElementById('buscaProduto').value.toLowerCase();
+    const linhas = document.querySelectorAll('#listaProdutos tr');
+    
+    linhas.forEach(linha => {
+        const texto = linha.textContent.toLowerCase();
+        linha.style.display = texto.includes(busca) ? '' : 'none';
+    });
+}
+
+// Venda Rápida
+function adicionarProdutoVenda(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const codigo = document.getElementById('codigoVenda').value;
+        const produto = produtos.find(p => p.codigoBarras === codigo);
+        
+        if (!produto) {
+            alert('❌ Produto não encontrado!');
+            return;
+        }
+        
+        if (produto.quantidade <= 0) {
+            alert('❌ Produto sem estoque!');
+            return;
+        }
+        
+        // Verificar se já está no carrinho
+        const itemExistente = carrinhoVenda.find(item => item.id === produto.id);
+        if (itemExistente) {
+            itemExistente.quantidade++;
+        } else {
+            carrinhoVenda.push({
+                id: produto.id,
+                nome: produto.nome,
+                preco: produto.precoVenda,
+                precoCusto: produto.precoCusto,
+                quantidade: 1
+            });
+        }
+        
+        atualizarCarrinho();
+        document.getElementById('codigoVenda').value = '';
+        document.getElementById('codigoVenda').focus();
+    }
+}
+
+function atualizarCarrinho() {
+    const container = document.getElementById('itensVenda');
+    let html = '<table style="width: 100%;"><thead><tr><th>Produto</th><th>Qtd</th><th>Preço Unit.</th><th>Subtotal</th><th>Ação</th></tr></thead><tbody>';
+    
+    let total = 0;
+    let lucro = 0;
+    
+    carrinhoVenda.forEach((item, index) => {
+        const subtotal = item.preco * item.quantidade;
+        const lucroItem = (item.preco - item.precoCusto) * item.quantidade;
+        total += subtotal;
+        lucro += lucroItem;
+        
+        html += `
+            <tr>
+                <td>${item.nome}</td>
+                <td>${item.quantidade}</td>
+                <td>R$ ${item.preco.toFixed(2)}</td>
+                <td>R$ ${subtotal.toFixed(2)}</td>
+                <td><button onclick="removerItemVenda(${index})" class="btn btn-gold" style="padding: 5px 10px; font-size: 0.9em;">Remover</button></td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    
+    document.getElementById('totalVenda').textContent = 'R$ ' + total.toFixed(2);
+    document.getElementById('lucroVenda').textContent = 'R$ ' + lucro.toFixed(2);
+}
+
+function removerItemVenda(index) {
+    carrinhoVenda.splice(index, 1);
+    atualizarCarrinho();
+}
+
+function finalizarVenda() {
+    if (carrinhoVenda.length === 0) {
+        alert('❌ Carrinho vazio!');
+        return;
+    }
+    
+    const venda = {
+        id: Date.now(),
+        data: new Date().toISOString(),
+        itens: [...carrinhoVenda],
+        cliente: document.getElementById('clienteVenda').value || 'Cliente Anônimo',
+        total: parseFloat(document.getElementById('totalVenda').textContent.replace('R$ ', '')),
+        lucro: parseFloat(document.getElementById('lucroVenda').textContent.replace('R$ ', ''))
+    };
+    
+    // Atualizar estoque
+    carrinhoVenda.forEach(item => {
+        const produto = produtos.find(p => p.id === item.id);
+        if (produto) {
+            produto.quantidade -= item.quantidade;
+        }
+    });
+    
+    vendas.push(venda);
+    localStorage.setItem('vendas', JSON.stringify(vendas));
+    localStorage.setItem('produtos', JSON.stringify(produtos));
+    
+    alert('✅ Venda finalizada com sucesso!\n\nTotal: R$ ' + venda.total.toFixed(2));
+    
+    cancelarVenda();
+    carregarProdutos();
+    atualizarDashboard();
+}
+
+function cancelarVenda() {
+    carrinhoVenda = [];
+    atualizarCarrinho();
+    document.getElementById('clienteVenda').value = '';
+    document.getElementById('codigoVenda').focus();
+}
+
+// Relatório Diário
+function gerarRelatorioDiario() {
+    const dataInput = document.getElementById('dataRelatorio').value;
+    if (!dataInput) {
+        alert('Selecione uma data!');
+        return;
+    }
+    
+    const dataFiltro = new Date(dataInput + 'T00:00:00');
+    const vendasDoDia = vendas.filter(venda => {
+        const dataVenda = new Date(venda.data);
+        return dataVenda.toDateString() === dataFiltro.toDateString();
+    });
+    
+    // Resumo
+    const totalVendas = vendasDoDia.reduce((sum, v) => sum + v.total, 0);
+    const totalLucro = vendasDoDia.reduce((sum, v) => sum + v.lucro, 0);
+    
+    document.getElementById('resumoDiario').innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <div class="dashboard-card">
+                <h3>Vendas do Dia</h3>
+                <div class="value">${vendasDoDia.length}</div>
+            </div>
+            <div class="dashboard-card gold-card">
+                <h3>Total Vendido</h3>
+                <div class="value">R$ ${totalVendas.toFixed(2)}</div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Lucro do Dia</h3>
+                <div class="value">R$ ${totalLucro.toFixed(2)}</div>
+            </div>
+        </div>
+    `;
+    
+    // Tabela
+    const tbody = document.getElementById('listaVendasDiario');
+    tbody.innerHTML = '';
+    
+    vendasDoDia.forEach(venda => {
+        const hora = new Date(venda.data).toLocaleTimeString('pt-BR');
+        const produtos = venda.itens.map(i => `${i.nome} (${i.quantidade}x)`).join(', ');
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>${hora}</td>
+                <td>${produtos}</td>
+                <td>${venda.cliente}</td>
+                <td>R$ ${venda.total.toFixed(2)}</td>
+                <td style="color: var(--gold); font-weight: bold;">R$ ${venda.lucro.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+}
+
+function exportarRelatorioDiarioExcel() {
+    const dataInput = document.getElementById('dataRelatorio').value;
+    if (!dataInput) {
+        alert('Selecione uma data primeiro!');
+        return;
+    }
+    
+    const dataFiltro = new Date(dataInput + 'T00:00:00');
+    const vendasDoDia = vendas.filter(venda => {
+        const dataVenda = new Date(venda.data);
+        return dataVenda.toDateString() === dataFiltro.toDateString();
+    });
+    
+    const dados = vendasDoDia.map(venda => ({
+        'Hora': new Date(venda.data).toLocaleTimeString('pt-BR'),
+        'Produtos': venda.itens.map(i => `${i.nome} (${i.quantidade}x)`).join(', '),
+        'Cliente': venda.cliente,
+        'Total': venda.total.toFixed(2),
+        'Lucro': venda.lucro.toFixed(2)
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Vendas Diário");
+    XLSX.writeFile(wb, `relatorio_diario_${dataInput}.xlsx`);
+}
+
+function exportarRelatorioDiarioPDF() {
+    const dataInput = document.getElementById('dataRelatorio').value;
+    if (!dataInput) {
+        alert('Selecione uma data primeiro!');
+        return;
+    }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Relatório de Vendas Diário', 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Data: ${new Date(dataInput + 'T00:00:00').toLocaleDateString('pt-BR')}`, 14, 30);
+    
+    const dataFiltro = new Date(dataInput + 'T00:00:00');
+    const vendasDoDia = vendas.filter(venda => {
+        const dataVenda = new Date(venda.data);
+        return dataVenda.toDateString() === dataFiltro.toDateString();
+    });
+    
+    const dados = vendasDoDia.map(venda => [
+        new Date(venda.data).toLocaleTimeString('pt-BR'),
+        venda.itens.map(i => `${i.nome} (${i.quantidade}x)`).join(', '),
+        venda.cliente,
+        'R$ ' + venda.total.toFixed(2),
+        'R$ ' + venda.lucro.toFixed(2)
+    ]);
+    
+    doc.autoTable({
+        head: [['Hora', 'Produtos', 'Cliente', 'Total', 'Lucro']],
+        body: dados,
+        startY: 40
+    });
+    
+    doc.save(`relatorio_diario_${dataInput}.pdf`);
+}
+
+// Relatório Geral
+function gerarRelatorioGeral() {
+    const dataInicio = new Date(document.getElementById('dataInicio').value);
+    const dataFim = new Date(document.getElementById('dataFim').value);
+    
+    const vendasPeriodo = vendas.filter(venda => {
+        const dataVenda = new Date(venda.data);
+        return dataVenda >= dataInicio && dataVenda <= dataFim;
+    });
+    
+    const totalVendas = vendasPeriodo.reduce((sum, v) => sum + v.total, 0);
+    const totalLucro = vendasPeriodo.reduce((sum, v) => sum + v.lucro, 0);
+    
+    document.getElementById('resumoGeral').innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <div class="dashboard-card">
+                <h3>Total de Vendas</h3>
+                <div class="value">${vendasPeriodo.length}</div>
+            </div>
+            <div class="dashboard-card gold-card">
+                <h3>Total Vendido</h3>
+                <div class="value">R$ ${totalVendas.toFixed(2)}</div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Lucro Total</h3>
+                <div class="value">R$ ${totalLucro.toFixed(2)}</div>
+            </div>
+        </div>
+    `;
+    
+    // Produtos mais vendidos
+    const produtosVendidos = {};
+    vendasPeriodo.forEach(venda => {
+        venda.itens.forEach(item => {
+            if (!produtosVendidos[item.nome]) {
+                produtosVendidos[item.nome] = { quantidade: 0, total: 0 };
+            }
+            produtosVendidos[item.nome].quantidade += item.quantidade;
+            produtosVendidos[item.nome].total += item.preco * item.quantidade;
+        });
+    });
+    
+    const tbody = document.getElementById('listaMaisVendidos');
+    tbody.innerHTML = '';
+    
+    Object.entries(produtosVendidos)
+        .sort((a, b) => b[1].quantidade - a[1].quantidade)
+        .slice(0, 10)
+        .forEach(([nome, dados]) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${nome}</td>
+                    <td>${dados.quantidade}</td>
+                    <td>R$ ${dados.total.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+}
+
+function exportarRelatorioExcel() {
+    const dataInicio = new Date(document.getElementById('dataInicio').value);
+    const dataFim = new Date(document.getElementById('dataFim').value);
+    
+    const vendasPeriodo = vendas.filter(venda => {
+        const dataVenda = new Date(venda.data);
+        return dataVenda >= dataInicio && dataVenda <= dataFim;
+    });
+    
+    const dados = vendasPeriodo.map(venda => ({
+        'Data': new Date(venda.data).toLocaleString('pt-BR'),
+        'Cliente': venda.cliente,
+        'Total': venda.total.toFixed(2),
+        'Lucro': venda.lucro.toFixed(2),
+        'Itens': venda.itens.map(i => `${i.nome} (${i.quantidade}x)`).join('; ')
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Vendas Geral");
+    XLSX.writeFile(wb, `relatorio_geral.xlsx`);
+}
+
+function exportarRelatorioPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('Relatório Geral de Vendas', 14, 20);
+    
+    const dataInicio = document.getElementById('dataInicio').value;
+    const dataFim = document.getElementById('dataFim').value;
+    doc.setFontSize(12);
+    doc.text(`Período: ${dataInicio} a ${dataFim}`, 14, 30);
+    
+    const vendasPeriodo = vendas.filter(venda => {
+        const dataVenda = new Date(venda.data);
+        return dataVenda >= new Date(dataInicio) && dataVenda <= new Date(dataFim);
+    });
+    
+    const dados = vendasPeriodo.map(venda => [
+        new Date(venda.data).toLocaleString('pt-BR'),
+        venda.cliente,
+        'R$ ' + venda.total.toFixed(2),
+        'R$ ' + venda.lucro.toFixed(2)
+    ]);
+    
+    doc.autoTable({
+        head: [['Data', 'Cliente', 'Total', 'Lucro']],
+        body: dados,
+        startY: 40
+    });
+    
+    doc.save('relatorio_geral.pdf');
+}
+
+// Fornecedores
+function salvarFornecedor(event) {
+    event.preventDefault();
+    
+    const fornecedor = {
+        id: Date.now(),
+        nome: document.getElementById('nomeFornecedor').value,
+        cnpj: document.getElementById('cnpjFornecedor').value,
+        contato: document.getElementById('contatoFornecedor').value,
+        telefone: document.getElementById('telefoneFornecedor').value
+    };
+    
+    fornecedores.push(fornecedor);
+    localStorage.setItem('fornecedores', JSON.stringify(fornecedores));
+    
+    alert('✅ Fornecedor cadastrado!');
+    document.getElementById('formFornecedor').reset();
+    carregarFornecedores();
+    atualizarSelectFornecedores();
+}
+
+function carregarFornecedores() {
+    const tbody = document.getElementById('listaFornecedores');
+    tbody.innerHTML = '';
+    
+    fornecedores.forEach(fornecedor => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${fornecedor.nome}</td>
+                <td>${fornecedor.cnpj || '-'}</td>
+                <td>${fornecedor.contato || '-'}</td>
+                <td>${fornecedor.telefone || '-'}</td>
+            </tr>
+        `;
+    });
+}
+
+function atualizarSelectFornecedores() {
+    const select = document.getElementById('fornecedorProduto');
+    select.innerHTML = '<option value="">Selecione...</option>';
+    
+    fornecedores.forEach(fornecedor => {
+        select.innerHTML += `<option value="${fornecedor.id}">${fornecedor.nome}</option>`;
+    });
+}
+
+// Dashboard
+function atualizarDashboard() {
+    document.getElementById('totalProdutos').textContent = produtos.length;
+    
+    const hoje = new Date();
+    const vendasHoje = vendas.filter(v => {
+        const dataVenda = new Date(v.data);
+        return dataVenda.toDateString() === hoje.toDateString();
+    });
+    
+    const totalHoje = vendasHoje.reduce((sum, v) => sum + v.total, 0);
+    const lucroHoje = vendasHoje.reduce((sum, v) => sum + v.lucro, 0);
+    
+    document.getElementById('vendasHoje').textContent = 'R$ ' + totalHoje.toFixed(2);
+    document.getElementById('lucroHoje').textContent = 'R$ ' + lucroHoje.toFixed(2);
+    
+    const mesAtual = hoje.getMonth();
+    const vendasMes = vendas.filter(v => new Date(v.data).getMonth() === mesAtual);
+    const totalMes = vendasMes.reduce((sum, v) => sum + v.total, 0);
+    
+    document.getElementById('vendasMes').textContent = 'R$ ' + totalMes.toFixed(2);
+}
+
+// Inicialização
+window.onload = function() {
+    // Definir data de hoje nos campos de data
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('dataRelatorio').value = hoje;
+    document.getElementById('dataInicio').value = hoje;
+    document.getElementById('dataFim').value = hoje;
+};
+</script>
+
+</body>
+</html>
